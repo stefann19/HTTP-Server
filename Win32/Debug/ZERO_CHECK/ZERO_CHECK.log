@@ -1,4 +1,2 @@
 ﻿  Checking Build System
-  CMake is re-running because D:/Projects/Cmake HTTP Functions/build/CMakeFiles/generate.stamp dependency file is missing.
-CUSTOMBUILD : CMake error : The source directory "D:/Projects/Cmake HTTP Functions" does not appear to contain CMakeLists.txt.
-  Specify --help for usage, or press the help button on the CMake GUI.
+  CMake does not need to re-run because D:/Projects/HTTP-Server/build/CMakeFiles/generate.stamp is up-to-date.
