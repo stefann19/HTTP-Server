@@ -1,0 +1,36 @@
+<HTML>
+    <HEAD>
+        <META NAME="GENERATOR" Content="Microsoft Visual Studio">
+        <TITLE></TITLE>
+    </HEAD>
+<BODY>
+
+    <script>
+       
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onprogress = function () {
+            ShowResult("<p>Progress</p>");
+        }
+        xmlHttp.onload = function () {
+            ShowResult(xmlHttp.responseText);
+        }
+        xmlHttp.open("GET", "http://127.0.0.1:8080", false); // true for asynchronous 
+        xmlHttp.send(null);
+
+        function ShowResult(data) {
+            var check = document.getElementById("response");
+            if (check) check.remove();
+            var p = document.createElement("div");
+            p.setAttribute("id", "response");
+            p.innerHTML = data;
+            document.body.appendChild(p);
+        }
+    </script>
+
+    <form action="http://127.0.0.1:8080/Equaton.htm">
+        <input type="submit" value="Go to Equation" />
+    </form>
+
+
+</BODY>
+</HTML>

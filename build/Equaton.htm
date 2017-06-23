@@ -1,0 +1,107 @@
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" Content="Microsoft Visual Studio">
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+
+<TITLE></TITLE>
+</HEAD>
+<BODY>
+
+    <form action="javascript:;" onsubmit="CreateInputBoxes()">
+        Number of equations: <input class="n" type="text" name="nr"><br>
+        <input type="submit" value="Submit">
+    </form>
+
+    <script type="text/javascript">
+        function sleep(time) {
+            return new Promise((resolve) => setTimeout(resolve, time));
+        }
+        function CreateInputBoxes() {
+            var n = document.getElementsByClassName("n")[0].value;
+
+            var check = document.getElementById("myForm");
+            if (check) check.remove();
+            check = document.getElementById("response");
+            if (check) check.remove();
+
+
+            var x = document.createElement("FORM");
+            x.setAttribute("id", "myForm");
+            x.setAttribute("action", "javascript:;");
+            x.setAttribute("onsubmit", "CallHTTP()");
+            document.body.appendChild(x);
+            for (i = 0; i < n; i++) {
+                var text = document.createTextNode("Name "+i+" : ");
+                document.getElementById("myForm").appendChild(text);
+
+                var y = document.createElement("INPUT");
+                y.setAttribute("type", "text");
+                y.setAttribute("class", "inputName");
+                document.getElementById("myForm").appendChild(y);
+
+                text = document.createTextNode("Value " + i + " : ");
+                document.getElementById("myForm").appendChild(text);
+
+                y = document.createElement("INPUT");
+                y.setAttribute("type", "text");
+                y.setAttribute("class", "inputValue");
+                document.getElementById("myForm").appendChild(y);
+                document.getElementById("myForm").appendChild(document.createElement("br"));
+            }
+            var y = document.createElement("INPUT");
+            y.setAttribute("type", "submit");
+            y.setAttribute("value", "SendPost");
+            y.setAttribute("class", "SendPost");
+            document.getElementById("myForm").appendChild(y);
+        }
+
+
+        function CallHTTP() {
+            var check = document.getElementById("response");
+            if (check) check.remove();
+            var urll = "http://127.0.0.1:8080/Equation";
+            var method = "POST";
+
+            var n = document.getElementsByClassName("n")[0].value;
+
+
+            var postData = " ------ "; // \"pancakes\" \r\n\r\n20+30\r\n ------ \"apples\" \r\n\r\n50+20\r\n";
+
+            for (i = 0; i < n; i++) {
+                var name = document.getElementsByClassName("inputName")[i].value;
+                var value = document.getElementsByClassName("inputValue")[i].value;
+                postData = postData + "\" <br> " + name + "\" \r\n\r\n" + value + "\r\n ------ ";
+            }
+
+            jQuery.ajax({
+                url: urll,
+                //contentType: 'text/plain',
+                processData: false,
+                dataType: 'text',
+                data: postData,
+                type: 'POST',
+                timeout: 0 ,
+                success: function (data) {
+                    ShowResult(data,false);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    ShowResult(textStatus + "FAIL" + errorThrown +" Retrying don't worry",true);
+                    sleep(2000).then(() => {
+                        CallHTTP();
+                    });
+                }
+            });
+
+        }
+        function ShowResult(data,dontRefresh) {
+            var p = document.createElement("div");
+            p.setAttribute("id", "response");
+            p.innerHTML=data;
+            document.body.appendChild(p);
+        }
+
+    </script>
+
+
+</BODY>
+</HTML>
