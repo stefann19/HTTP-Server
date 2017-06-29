@@ -1,36 +1,146 @@
 <HTML>
     <HEAD>
         <META NAME="GENERATOR" Content="Microsoft Visual Studio">
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
         <TITLE></TITLE>
     </HEAD>
-<BODY>
+<BODY onload="Start()">
 
     <script>
-       
-        var xmlHttp = new XMLHttpRequest();
-        xmlHttp.onprogress = function () {
-            ShowResult("<p>Progress</p>");
+        var loggedIn;
+
+        function Start() {
+            loggedIn = false;
+
+            CreateLogInForm();
+
+            ListFunctions();
+
+
+           
         }
-        xmlHttp.onload = function () {
-            ShowResult(xmlHttp.responseText);
+        function CreateLogInForm() {
+            var form = document.createElement("FORM");
+            form.setAttribute("id", "myLogInForm");
+            form.setAttribute("action", "javascript:;");
+            form.setAttribute("onsubmit", "LogIn()");
+
+            document.body.appendChild(form);
+
+            var text = document.createTextNode("User:");
+            document.getElementById("myLogInForm").appendChild(text);
+
+            var inputField = document.createElement("INPUT");
+            inputField.setAttribute("id", "username");
+            inputField.setAttribute("type", "text");
+            inputField.setAttribute("class", "inputName");
+            document.getElementById("myLogInForm").appendChild(inputField);
+
+            var inputButton = document.createElement("INPUT");
+            inputButton.setAttribute("type", "submit");
+            inputButton.setAttribute("value", "LogIn");
+            inputButton.setAttribute("class", "SendPost");
+            document.getElementById("myLogInForm").appendChild(inputButton);
         }
-        xmlHttp.open("GET", "http://127.0.0.1:8080", false); // true for asynchronous 
-        xmlHttp.send(null);
+
+        function ListFunctions() {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onprogress = function () {
+                ShowResult("<p>Progress</p>");
+            }
+            xmlHttp.onload = function () {
+                ShowResult(xmlHttp.responseText);
+            }
+            xmlHttp.open("GET", "http://127.0.0.1:8080", false); // true for asynchronous 
+            xmlHttp.send();
+        }
+
+        function LogIn() {
+            var postData = document.getElementById("username").value;
+
+            if (postData == null) return;
+
+            postData = "LogIn(" + postData + ")";
+            var urll = "http://127.0.0.1:8080/Main";
+
+
+            jQuery.ajax({
+                url: urll,
+                //contentType: 'text/plain',
+                processData: false,
+                dataType: 'text',
+                data: postData,
+                type: 'POST',
+                timeout: 0,
+                success: function (data) {
+                    //ShowResult(data, false);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                   // ShowResult(textStatus + "FAIL" + errorThrown + " Retrying don't worry", true);
+                    sleep(2000).then(() => {
+                        CallHTTP();
+                    });
+                }
+            });
+        }
 
         function ShowResult(data) {
             var check = document.getElementById("response");
             if (check) check.remove();
-            var p = document.createElement("div");
-            p.setAttribute("id", "response");
-            p.innerHTML = data;
-            document.body.appendChild(p);
+
+            //var p = document.createElement("div");
+            //p.setAttribute("id", "response");
+            //p.innerHTML = data;
+            //document.body.appendChild(p);
+
+            var aux = ""+data;
+            var functions = aux.split("\n");
+            var availableFunctions = document.createTextNode("Available functions " + (functions.length-1) + ":");
+            document.body.appendChild(availableFunctions);
+
+            var form = document.createElement("FORM");
+            form.setAttribute("id", "myFunctionsForm");
+            form.setAttribute("action", "javascript:;");
+            form.setAttribute("onsubmit", "LogIn()");
+            document.body.appendChild(form);
+
+
+            for (i = 0; i < functions.length-1;i++){
+                var inputButton = document.createElement("INPUT");
+                inputButton.setAttribute("type", "submit");
+                inputButton.setAttribute("value", functions[i].substr(4, functions[i].length-4));
+                inputButton.setAttribute("class", "SendPost");
+                document.getElementById("myFunctionsForm").appendChild(inputButton);
+                document.getElementById("myFunctionsForm").appendChild(document.createElement("br"));
+
+            }
+            
+
+            //var sub = aux.substr(4, aux.search("\n")-4);
+            
+            //var inputButton = document.createElement("INPUT");
+            //inputButton.setAttribute("type", "submit");
+            //inputButton.setAttribute("value", aux);
+            //inputButton.setAttribute("class", "SendPost");
+            //document.getElementById("myFunctionsForm").appendChild(inputButton);
+            //aux.replace(sub, "");
+
+            //while (aux.search("<br>") != -1) {
+            //    var sub = aux.substr(0, aux.search("\n"));
+
+            //    var inputButton = document.createElement("INPUT");
+            //    inputButton.setAttribute("type", "submit");
+            //    inputButton.setAttribute("value", sub);
+            //    inputButton.setAttribute("class", "SendPost");
+            //    document.getElementById("myFunctionsForm").appendChild(inputButton);
+            //    aux.replace(sub, "");
+            //}
         }
     </script>
 
-    <form action="http://127.0.0.1:8080/Equaton.htm">
+    <!--<form action="http://127.0.0.1:8080/Equaton.htm">
         <input type="submit" value="Go to Equation" />
-    </form>
-
+    </form>-->
 
 </BODY>
 </HTML>

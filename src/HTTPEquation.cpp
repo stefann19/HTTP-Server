@@ -91,7 +91,7 @@ public:
 
 namespace ExtractInfo {
 
-	 std::vector<stringPair> ExtractInfoPost(char data_[4096], std::string &httpV, std::string &host,bool &keepAlive) {
+	 std::vector<stringPair> ExtractInfoPost(char data_[8192], std::string &httpV, std::string &host,bool &keepAlive) {
 		char *aux = "";
 		std::string delimiter = "\r\n";
 		std::string s(data_);
@@ -141,9 +141,7 @@ namespace ExtractInfo {
 		token = s.substr(0, pos);
 		return variables;
 	}
-
-	
-	std::vector<stringPair> ExtractInfoGet(char data_[4096], std::string &httpV, std::string &host,bool &keepAlive) {
+	std::vector<stringPair> ExtractInfoGet(char data_[8192], std::string &httpV, std::string &host,bool &keepAlive) {
 		char *aux = ""; int nr = 0;
 		std::string delimiter = "\r\n";
 		std::string s(data_);
@@ -182,7 +180,7 @@ namespace ExtractInfo {
 		host = token + "/" + host;//host holds the full addres eg :host = "127.0.0.1:8080/Test?name=20&name=30"
 		return variables;
 	}
-	PacketInfo ExtractInfoMain(char data_[4096]) {
+	PacketInfo ExtractInfoMain(char data_[8192]) {
 		PacketInfo info;
 		std::string type, dataS(data_);
 		type = dataS.substr(0, dataS.find(" "));
@@ -215,18 +213,18 @@ int sessions = 0;
 
 int timeToKeepOpen = 1000;
 
-class session 
-	: public std::enable_shared_from_this<session>
+class mainSession 
+	: public std::enable_shared_from_this<mainSession>
 {
 public:
 	int keepAliveSeconds;
-	session(tcp::socket socket)
+	mainSession(tcp::socket socket)
 		: socket_(std::move(socket))
 	{
 		keepAliveSeconds = 10;
 	}
-	char buffsize[4096];
-	asio::mutable_buffers_1 buff = asio::buffer(buffsize, 4096);
+	char buffsize[8192];
+	asio::mutable_buffers_1 buff = asio::buffer(buffsize, 8192);
 	time_t lastReadTime;
 	void start()
 	{
@@ -236,34 +234,16 @@ public:
 
 		sessions++;
 		threads++;
-		std::cout << "Sessions:" << sessions<<std::endl;
-		/*sessions++;
-
-		threads++;
-		std::thread t([this]() {
-			while (keepAliveSeconds > 0 ) {
-				if (keepAliveSeconds > 10)break;
-				if (keepAliveSeconds >= 80) {
-					break;
-					std::cout << ">80\n";
-				}
-				std::this_thread::sleep_for(std::chrono::seconds(3));
-				keepAliveSeconds-=3;
-				if(keepAliveSeconds >=0 && keepAliveSeconds <=10)
-					std::cout << "i slept" << keepAliveSeconds <<" [] "<< std::this_thread::get_id() << "[]" << threads << "[]" << sessions <<std::endl;
-			}
-			threads--;
-		});
-		*/
+		//std::cout << "Sessions:" << sessions<<std::endl;
+		
 		lastReadTime = time(0);
 		do_read();
 
-		//t.detach();
 
 
 
 	}
-	~session() {
+	~mainSession() {
 		threads--;
 		std::cout << threads << "[]" << sessions << std::endl;
 	}
@@ -310,7 +290,7 @@ private:
 				//std::cout << ec.message();
 				if (!ec)
 				{
-					//std::cout << data_<<"|||"<<std::endl;
+					std::cout << data_<<"|||"<<std::endl;
 					PacketInfo packet;
 					packet = ExtractInfo::ExtractInfoMain(data_);
 
@@ -350,7 +330,9 @@ private:
 							addVariable(packet.packetBody[i].first, packet.packetBody[i].second);
 						}
 					}*/
-					
+					for (int i = 0;i < packet.packetBody.size();i++) {
+						std::cout << packet.packetBody[i].first<<std::endl;
+					}
 					resp = resp +
 						"HTTP/" + packet.httpV + " " + packet.responseCode /*info.first */ + "\r\n" +
 						"Host: " + packet.host + "\r\n" +
@@ -367,7 +349,7 @@ private:
 				//std::cout << std::endl;
 				
 				strcpy(buffsize, resp.c_str());
-				//std::cout << buffsize << std::endl;
+				//std::cout << resp.length() << std::endl;
 				//std::cout << time(0) - lastReadTime << std::endl;
 				do_write(resp.length());
 
@@ -394,13 +376,9 @@ private:
 			{
 				writes++;
 				if (writes % 25 == 0)
-					//std::cout << writes << std::endl;
-				//std::cout <<std::endl<< buffsize;
-				//if (keepAliveSeconds > 0 && keepAliveSeconds < 80) {
-				//std::cout << time(0) - lastReadTime << std::endl;
+					
 				time(0);
 				if (time(0) - lastReadTime < timeToKeepOpen){
-					//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 					do_read();
 				}
 			}
@@ -408,9 +386,10 @@ private:
 	}
 
 	tcp::socket socket_;
-	enum { max_length = 4096 };
+	enum { max_length = 8192 };
 	char data_[max_length];
 };
+
 class server
 {
 public:
@@ -429,7 +408,7 @@ private:
 		{
 			if (!ec)
 			{
-				std::make_shared<session>(std::move(socket_))->start();
+				std::make_shared<mainSession>(std::move(socket_))->start();
 			}
 			do_accept();
 		});
