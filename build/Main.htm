@@ -56,11 +56,16 @@
         }
 
         function LogIn() {
-            var postData = document.getElementById("username").value;
+            var aux = document.getElementById("username").value;
+            document.cookie = "username=" + aux;
 
-            if (postData == null) return;
+            if (aux == null) return;
 
-            postData = "LogIn(" + postData + ")";
+
+             var postData = " ------ "
+             aux = "LogIn(" + aux + ")";
+
+             postData = postData + "\" <br> " + aux + "\" \r\n\r\n 0 \r\n ------ ";
             var urll = "http://127.0.0.1:8080/Main";
 
 

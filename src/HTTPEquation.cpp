@@ -81,9 +81,19 @@ public:
 	bool keepAlive;
 
 	void ProcessPacket() {
-		std::string variables="";
+		std::string aux;
+		json11::Json variables = json11::Json::parse(jsonS, aux); ;
+		//std::string variables="";
 		for (int i = 0;i < packetBody.size();i++) {
-			processedPacketBody.push_back(FM.call_script(std::make_pair(function, type), packetBody[i].second, jsonS));
+			if (packetBody[i].first.find("get(") != std::string::npos) {
+				std::string value;
+				value = packetBody[i].first;
+				value =  value.substr(value.find("(") + 1, value.find(")") - value.find("(") - 1);
+				processedPacketBody.push_back(std::make_pair(value, variables[value].string_value()));
+			}
+			else{
+				processedPacketBody.push_back(FM.call_script(std::make_pair(function, type), packetBody[i].second, jsonS));
+			}	
 			processedPacketBody[i].first = packetBody[i].first+" ["+processedPacketBody[i].first+"] ";
 		}
 	}
@@ -209,9 +219,13 @@ namespace ExtractInfo {
 
 int writes=0;
 int threads = 1;
-int sessions = 0;
+int sessionsNr = 0;
 
 int timeToKeepOpen = 1000;
+
+
+
+
 
 class mainSession 
 	: public std::enable_shared_from_this<mainSession>
@@ -232,7 +246,7 @@ public:
 		std::string aux;
 		variables = json11::Json::parse(jsonString, aux);
 
-		sessions++;
+		sessionsNr++;
 		threads++;
 		//std::cout << "Sessions:" << sessions<<std::endl;
 		
@@ -245,19 +259,29 @@ public:
 	}
 	~mainSession() {
 		threads--;
-		std::cout << threads << "[]" << sessions << std::endl;
+		std::cout << threads << "[]" << sessionsNr << std::endl;
 	}
 	std::string jsonString;
+	json11::Json variables;
 private:
 	
-	json11::Json variables;
+	void getVariable(std::string name) {
+
+	}
 
 	void addVariable(std::string name,std::string value) {
 		int pos;
 		std::string aux;
+		variables = json11::Json::parse(jsonString, aux);
 
 		if (name.find("set(") != std::string::npos) {
 			name = name.substr(name.find("(")+1, name.find(")")-name.find("(")-1);
+		}
+
+
+		if (name.find("LogIn(") != std::string::npos) {
+			value = name.substr(name.find("(") + 1, name.find(")") - name.find("(") - 1);
+			name = "Username";
 		}
 
 		if ( jsonString.find(name) == std::string::npos || variables[name].is_null()) {
@@ -274,9 +298,10 @@ private:
 		std::cout << jsonString;
 		variables = json11::Json::parse(jsonString, aux);
 
-		std::cout << variables["x"].string_value()<<std::endl;
+		//std::cout << variables["x"].string_value()<<std::endl;
 	}
 
+	void LogIn(std::string name);
 
 	void do_read()
 	{
@@ -290,15 +315,29 @@ private:
 				//std::cout << ec.message();
 				if (!ec)
 				{
-					std::cout << data_<<"|||"<<std::endl;
+					//std::cout << data_<<"|||"<<std::endl;
 					PacketInfo packet;
 					packet = ExtractInfo::ExtractInfoMain(data_);
+					bool loggedIn = false;
+
+					for (int i = 0;i < packet.packetBody.size();i++) {
+						if (packet.packetBody[i].first.find("LogIn") != std::string::npos) {
+							LogIn(packet.packetBody[i].first);
+							addVariable(packet.packetBody[i].first, packet.packetBody[i].second);
+							loggedIn = true;
+							break;
+						}
+					}
+					if(!loggedIn) {
+						LogIn(variables["Username"].string_value());
+					}
 
 					for (int i = 0;i < packet.packetBody.size();i++) {
 						if (packet.packetBody[i].first.find("set(") != std::string::npos) {
 							addVariable(packet.packetBody[i].first, packet.packetBody[i].second);
 						}
 					}
+
 					packet.jsonS = jsonString;
 					if (packet.keepAlive) {
 						//keepAliveSeconds = 10;
@@ -349,7 +388,7 @@ private:
 				//std::cout << std::endl;
 				
 				strcpy(buffsize, resp.c_str());
-				//std::cout << resp.length() << std::endl;
+				std::cout << resp.length() << std::endl;
 				//std::cout << time(0) - lastReadTime << std::endl;
 				do_write(resp.length());
 
@@ -389,6 +428,37 @@ private:
 	enum { max_length = 8192 };
 	char data_[max_length];
 };
+
+std::map<std::string, mainSession*> sessions;
+
+
+void mainSession::LogIn(std::string name) {
+	name = name.substr(name.find("(")+1, name.find(")") - name.find("(")-1);
+
+	auto it = sessions.find(name);
+	if (it != sessions.end())
+	{
+		//element found;
+		std::string aux = sessions[name]->jsonString;
+		this->jsonString = aux;
+		//this->variables = sessions[name]->variables;
+		//somehow destroy old session and replace reference
+		//destroy
+		sessions[name]->~mainSession();
+		//replace
+		sessions[name] = this; // 
+
+		std::cout << "Connected to old sessions";
+
+	}
+	else {
+		std::cout << "Created new user " + name;
+		sessions.insert(std::make_pair(name,this));
+	}
+}
+
+
+
 
 class server
 {
